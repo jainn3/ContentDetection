@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D3 Graphic</title>
+</head>
+<style type="text/css">
+  
+
+text{
+  font: 13px sans-serif;
+}
+
+
+      .tooltip{
+position: absolute; 
+  text-align: center;   
+  width: 17%;   
+  height:10%;       
+  padding: 2vw; 
+  font: 1.4vw sans-serif;       
+  border: 0px;                  
+  border-radius: 8px;
+  color:black;
+  box-shadow: -3px 3px 15px #888888;
+  display: none;
+  background: #eee;                                               
+  box-shadow: 0 0 5px #999999;
+
+}
+
+
+</style>
+
+<body>
+  <div class="container">
+    <h2>METADATA DISTRIBUTION ON EXTRACTED RICH CONTENT</h2>
+    <div id="chart"></div>
+    <div id = "svgContent"></div>
+  </div>
+  <!-- <script src="d3.min.js"></script> -->
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script type="text/javascript" src="data.json"></script>
+
+  <script type="text/javascript">
+    //function to find difference between two frequency distribution
+
+    // console.log(json_data);
+    var files = json_data["response"]["docs"];
+    var total = json_data["response"]["numFound"];
+
+    var metadata_fields = ["geographic_name","optional_name2","optional_name1","mass_measurements", "temperature_measurements", "length_measurements", "time_measurements"];
+    var count = [];
+    for(var i=0;i<metadata_fields.length;i++)
+      count.push(parseInt("0"));
+    for(var i = 0; i < files.length; i++) {
+      for(var k=0;k<count.length;k++) {
+          // console.log(entry.includes(temp_units[k]) +" "+ entry.includes(temp_units_symbol[k]));
+          if(metadata_fields[k] in files[i]){
+            count[k] += 1;
+            // console.log("Update");
+          }
+        }
+    }
+
+console.log(count);
+    var width = 960,
+    height = 500,
+    radius = Math.min(width, height) / 2;
+
+ var tooltip = d3.select('#chart')                              
+          .append('div')                                               
+          .attr('class', 'tooltip'); 
+ tooltip.append("div")
+    .attr("class","metadata_field");
+
+
+
+
+var color = d3.scale.category20c();
+
+var arc = d3.svg.arc()
+    .outerRadius(radius - 10)
+    .innerRadius(0);
+
+var labelArc = d3.svg.arc()
+    .outerRadius(radius - 40)
+    .innerRadius(radius - 40);
+
+var pie = d3.layout.pie()
+    .sort(null)
+    .value(function(d) { return d; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+
+  var g = svg.selectAll(".arc")
+      .data(pie(count))
+    .enter().append("g")
+      .attr("class", "arc");
+
+  g.append("path")
+      .attr("d", arc)
+      .style("fill", function(d,i) { return color(i); })
+      .on("mouseover", function(d,i){
+        tooltip.select(".metadata_field").html(getDisplay(metadata_fields[i]));
+        tooltip.style('display', 'block')
+        tooltip.style('opacity', '100');
+        console.log("aa");
+      })
+      .on('mouseout', function() {                              
+            tooltip.style('display', 'none');
+            console.log("bb");                           
+      })
+      .on('mousemove', function(d) {                            
+            tooltip.style('top', (d3.event.pageY + 10) + 'px')          
+              .style('left', (d3.event.pageX + 10) + 'px');             
+       });
+
+  g.append("text")
+      .attr("transform", function(d) { return "translate(" + labelArc.centroid(d)+ ")"; })
+      .text(function(d, i) { 
+        var total = d3.sum(count.map(function(d) {                
+              return d;                                           
+        })); 
+        var percent = Math.round(1000 * count[i] / total) / 10;
+        return percent+"%";
+      });
+
+      function getDisplay(metadata_field) {
+
+        if(metadata_field == "temperature_measurements")
+            return "TEMPERATURE MEASUREMENTS";
+        else if(metadata_field == "time_measurements")
+            return "TIME MEASUREMENTS";
+        else if(metadata_field == "length_measurements")
+            return "LENGTH MEASUREMENTS";
+        else if(metadata_field == "mass_measurements")
+            return "MASS MEASUREMENTS";
+        else if(metadata_field == "geographic_name")
+            return "GEOGRAPHIC INFORMATION";
+        else if(metadata_field == "optional_name1")
+            return "OPTIONAL GEOGRAPHIC INFORMATION - 1";
+        else
+            return "OPTIONAL GEOGRAPHIC INFORMATION - 2";
+      }
+
+
+</script>
+ </script>
+</body>
+</html>

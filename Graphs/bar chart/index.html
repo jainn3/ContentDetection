@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D3 Graphic</title>
+</head>
+<style type="text/css">
+  
+
+text{
+  font: 13px sans-serif;
+}
+
+</style>
+
+<body>
+  <div class="container">
+    <h2>Different Temperature Type Distribution</h2>
+    <div id="chart"></div>
+  </div>
+  <script src="d3.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script type="text/javascript" src="data.json"></script>
+
+  <script type="text/javascript">
+    //function to find difference between two frequency distribution
+
+    // console.log(json_data);
+    var files = json_data["response"]["docs"];
+    var total = json_data["response"]["numFound"];
+
+    var temp_units = ["Fahrenheit","Celsius","Kelvin","Rankine", "Romer"];
+    var temp_units_symbol = ["°F","°C","K","°R","°Rø"];
+    var count = [];
+    for(var i=0;i<temp_units.length;i++)
+      count.push(parseInt("0"));
+    for(var i = 0; i < files.length; i++) {
+      var temp_measure = files[i]["temperature_measurements"];
+      for(var j=0;j<temp_measure.length;j++) {
+        var entry = temp_measure[j];
+        entry = entry.trim();
+        entry = entry.split('\n').join('');
+        for(var k=0;k<count.length;k++) {
+          // console.log(entry.includes(temp_units[k]) +" "+ entry.includes(temp_units_symbol[k]));
+          if(entry.includes(temp_units[k]) || entry.includes(temp_units_symbol[k])){
+            count[k] += 1;
+            // console.log("Update");
+          }
+        }
+      }
+    }
+
+console.log(count);
+    document.getElementById("chart").innerHTML ="";
+
+    var top= 30, right= 30, bottom= 40, left=50; 
+    drawgraph(count,30,30,40,50,1, "", "", temp_units, temp_units_symbol);
+    
+// function to draw graph
+    function drawgraph(data, t, r, b, l, id, message, type, units, unit_symbol) {
+
+
+        var margin = { top: t, right: r, bottom: b, left:l }
+
+        var height = 300,
+            width = 500 ,
+            barWidth = 25,
+            barOffset = 5;
+        var tempColor;
+
+        var max = d3.max(data, function(d) { return d; });
+
+        var colors = d3.scale.linear()
+          .domain([0, max])
+          .range(['#00FF00','#000000'])
+        
+        var yScale = d3.scale.linear()
+                .domain([0, max])
+                .range([0, height]);
+
+        // console.log(data.length);
+        // console.log(max);
+        var xScale = d3.scale.ordinal()
+                .domain(d3.range(0, data.length))
+                .rangeBands([0, 800], 0.1)
+
+        var xScale_Text = d3.scale.ordinal()
+                .domain(units)
+                
+
+        var tooltip = d3.select('body').select("#chart").append('div')
+                .style('position', 'absolute')
+                .style('padding', '0 10px')
+                .style('background', 'yellowgreen')
+                .style('opacity', 0)
+
+        d3.select('#chart').append("div").attr("id","chart_"+id).append("div").html(message+"&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp"+ type);
+        var myChart = d3.select('#chart').select("#chart_"+id).append('svg')
+            .attr('width', 900) 
+            .attr('height', 370) 
+            .append('g')
+            .attr('transform', 'translate('+ margin.left +', '+ margin.top +')')
+            .attr('class','svg')
+            .selectAll('rect').data(data)
+            .enter().append("rect")
+                .attr("class","bar")
+                .style('fill', function(d,i) {
+                    return colors(d);
+                })
+                .attr('width', xScale.rangeBand())
+                .attr('x', function(d,i) {
+                    return xScale(i);
+                })
+      
+            .on('mouseover', function(d, i) {
+
+                tooltip.transition()
+                    .style('opacity', .9)
+                var custom_message = "";
+                if(id == 1)
+                  custom_message = ""+d;
+                tooltip.html(custom_message)
+                    .style('left', (d3.event.pageX + 35) + 'px')
+                    .style('top',  (d3.event.pageY + 30) + 'px')
+                    .style('color', 'black')
+
+
+                tempColor = this.style.fill;
+                d3.select(this)
+                    .style('opacity', .5)
+                    .style('fill', '#4dd2ff')
+            })
+
+            .on('mouseout', function(d) {
+                d3.select(this)
+                    .style('opacity', 1)
+                    .style('fill', tempColor)
+            })
+
+        myChart.transition()
+            .attr('height', function(d,i) {
+                return yScale(d);
+            })
+            .attr('y', function(d, i) {
+                return height - yScale(d);
+            })
+            .delay(function(d, i) {
+                return i * 20;
+            })
+            .duration(1000)
+            .ease('elastic')
+
+        var vGuideScale = d3.scale.linear()
+            .domain([0, max])
+            .range([height, 0])
+
+        var vAxis = d3.svg.axis()
+            .scale(vGuideScale)
+            .orient('left')
+            .ticks(10)
+
+        var vGuide = d3.select('#chart').select("#chart_"+id).select('svg').append('g')
+            vAxis(vGuide)
+            vGuide.attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')')
+            vGuide.selectAll('path')
+                .style({ fill: 'none', stroke: "green"})
+            vGuide.selectAll('line')
+                .style({ stroke: "white"})
+
+        var hAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient('bottom')
+            .tickValues(xScale.domain().filter(function(d, i) {
+                return !(i % (data.length/5));
+            }))
+            .tickFormat("");
+
+        var hGuide = d3.select('#chart').select("#chart_"+id).select('svg').append('g')
+            hAxis(hGuide)
+            hGuide.attr('transform', 'translate(' + margin.left + ', ' + (height + margin.top) + ')')
+            hGuide.selectAll('path')
+                .style({ fill: 'none', stroke: "green"})
+            hGuide.selectAll('line')
+                .style({ stroke: "white"})
+        d3.select('#chart').select("#chart_"+id).select('svg').append('g')
+        .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x",0 -2)
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Frequency");
+        
+        d3.select('#chart').select("#chart_"+id).select('svg').append('g')
+        .append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width)
+        .attr("y", height+65)
+        .text("Temperature Units");
+
+        var svg = d3.select(".svg").selectAll("text")
+                     .data(units)
+                     .enter()
+                     .append("text")
+                     .text(function(d,i) {
+                            return d+" "+unit_symbol[i];
+                      })
+                     .attr("x", function(d,i){
+                      return xScale(i);
+                     })
+                     .attr("y", 320);
+    }
+  </script>
+</body>
+</html>

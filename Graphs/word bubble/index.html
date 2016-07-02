@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>D3 Graphic</title>
+</head>
+<style type="text/css">
+  
+
+text{
+  font: 13px sans-serif;
+}
+
+</style>
+
+<body>
+  <div class="container">
+    <h2>Extracted SWEET Concepts</h2>
+    <div id="chart"></div>
+  </div>
+  <script src="d3.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script type="text/javascript" src="data.json"></script>
+
+  <script type="text/javascript">
+    //function to find difference between two frequency distribution
+
+    // console.log(json_data);
+    var files = json_data["response"]["docs"];
+    var total = json_data["response"]["numFound"];
+
+    var wordCount = {};
+
+    for(var i = 0; i < files.length; i++) {
+      var temp_measure = files[i]["sweet_concepts"];
+      for(var j=0;j<temp_measure.length;j++) {
+        var entry = temp_measure[j];
+        entry = entry.trim();
+        entry = entry.split('\n').join('');
+        entry = entry.toLowerCase();
+        if(!(entry in wordCount))
+            wordCount[entry]=1;
+        else
+            wordCount[entry]=parseInt(wordCount[entry])+ 1;
+      }
+    }
+
+
+    console.log(wordCount);
+    document.getElementById("chart").innerHTML ="";
+    var top= 30, right= 30, bottom= 40, left=50; 
+
+    var diameter = 500, //max size of the bubbles
+    color    = d3.scale.category20c(); //color category
+
+    var bubble = d3.layout.pack()
+        .size([diameter, diameter])
+        .padding(1.5)
+        .value(function(d) {return d.size;});
+
+    var svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", diameter)
+        .attr("height", diameter)
+        .attr("class", "bubble");
+
+
+    //bubbles needs very specific format, convert data to this.
+    var nodes = bubble.nodes(processData(wordCount));
+    console.log(nodes);
+
+    //setup the chart
+    var bubbles = svg.append("g")
+        .attr("transform", "translate(0,0)")
+        .selectAll(".bubble")
+        .data(nodes)
+        .enter();
+
+    //create the bubbles
+    bubbles.append("circle")
+        .attr("r", function(d){ return d.r; })
+        .attr("cx", function(d){ return d.x; })
+        .attr("cy", function(d){ return d.y; })
+        .style("fill", function(d) { return color(d.value); });
+
+    //format the text for each bubble
+    bubbles.append("text")
+        .attr("x", function(d){ return d.x; })
+        .attr("y", function(d){ return d.y + 5; })
+        .attr("text-anchor", "middle")
+        .text(function(d){ return d.className; })
+        .style({ 
+            "font-family":"Helvetica Neue, Helvetica, Arial, san-serif",
+            "font-size": "12px"
+        });
+
+
+    function processData(data) {
+      
+      var newDataSet = [];
+
+      for(var word_key in data) {
+        newDataSet.push({name: word_key, className: word_key.toLowerCase(), size: data[word_key]});
+      }
+      return {children: newDataSet};
+    }
+  </script>
+</body>
+</html>
